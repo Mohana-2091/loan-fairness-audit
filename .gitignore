@@ -1,0 +1,24 @@
+# data - HMDA files are hundreds of MB, download them instead
+data/
+*.csv
+*.parquet
+
+# model pickle (superseded by portable model.json)
+model.joblib
+artifacts.joblib
+
+# environments
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# analysis output
+results.txt
+mitigation_results.txt
+*.png
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store

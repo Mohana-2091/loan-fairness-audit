@@ -1,0 +1,58 @@
+{
+  "threshold": 0.2973211405568693,
+  "numeric": [
+    "loan_amount",
+    "loan_to_value_ratio",
+    "income",
+    "property_value",
+    "loan_term",
+    "loan_to_income"
+  ],
+  "categorical": [
+    "loan_type",
+    "loan_purpose",
+    "lien_status",
+    "debt_to_income_ratio"
+  ],
+  "categories": {
+    "loan_type": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "loan_purpose": [
+      1,
+      2,
+      4,
+      5,
+      31,
+      32
+    ],
+    "lien_status": [
+      1,
+      2
+    ],
+    "debt_to_income_ratio": [
+      "20%-<30%",
+      "30%-<36%",
+      "36",
+      "37",
+      "38",
+      "39",
+      "40",
+      "41",
+      "42",
+      "43",
+      "44",
+      "45",
+      "46",
+      "47",
+      "48",
+      "49",
+      "50%-60%",
+      "<20%",
+      ">60%"
+    ]
+  }
+}
