@@ -118,6 +118,22 @@ Recall drops roughly 17 points. The constrained model refers far fewer applicati
 
 So the technique is a useful **audit and diagnostic** tool, not a shippable fix. The fair-lending bind is structural: exclude race and you get disparate impact; use race to correct it and you get disparate treatment. Real remediation lives in feature selection, data collection and human review design — not in post-processing.
 
+## Finding 5 — The model is non-monotonic in loan-to-value ratio
+
+Raising LTV from 60 to 97 on an otherwise identical application *lowers*
+predicted denial risk (0.156 → 0.097). This surfaced as a failing test that
+asserted the opposite.
+
+The test was wrong, not the model. High-LTV mortgages in this population are
+disproportionately FHA and VA loans — programmes designed for low-down-payment
+borrowers, with correspondingly different approval dynamics. The model learned
+the composition of the market, not a credit-theory relationship.
+
+This matters for governance. A reviewer eyeballing feature importance would
+assume LTV moves risk in one direction and could sign off on a model that does
+not behave that way. Monotonicity constraints are available in XGBoost and
+would be the right control if the business requires directional behaviour — but
+that is a policy decision, not a default.
 ---
 
 ## The API

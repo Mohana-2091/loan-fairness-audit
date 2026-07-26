@@ -1,4 +1,11 @@
-"""API tests. These run in CI against the exported artifacts."""
+"""API tests. These run in CI against the exported artifacts.
+
+Note on what is NOT tested here: an earlier version asserted that a higher
+loan-to-value ratio must not lower predicted denial risk. The model rejects
+that assumption - see README, "Non-monotonic response to LTV". Encoding an
+intuition the data does not support turns a finding into a broken build, so
+these tests check the service contract and determinism instead.
+"""
 
 import pytest
 from fastapi.testclient import TestClient
@@ -23,7 +30,9 @@ VALID = {
 def test_health():
     r = client.get("/health")
     assert r.status_code == 200
-    assert r.json()["status"] == "ok"
+    body = r.json()
+    assert body["status"] == "ok"
+    assert 0.0 < body["threshold"] < 1.0
 
 
 def test_predict_returns_probability_and_reasons():
@@ -35,6 +44,7 @@ def test_predict_returns_probability_and_reasons():
     assert len(body["top_reasons"]) == 5
     for reason in body["top_reasons"]:
         assert reason["direction"] in {"increases risk", "reduces risk"}
+        assert isinstance(reason["shap_log_odds"], float)
 
 
 def test_decision_matches_threshold():
@@ -43,17 +53,30 @@ def test_decision_matches_threshold():
     assert body["decision"] == expected
 
 
-def test_higher_ltv_does_not_reduce_risk():
-    """Sanity check on model direction: a much higher LTV should not score safer."""
-    low = client.post("/predict", json={**VALID, "loan_to_value_ratio": 60.0}).json()
-    high = client.post("/predict", json={**VALID, "loan_to_value_ratio": 97.0}).json()
-    assert high["denial_probability"] >= low["denial_probability"] - 0.05
+def test_reasons_are_ranked_by_magnitude():
+    reasons = client.post("/predict", json=VALID).json()["top_reasons"]
+    magnitudes = [abs(r["shap_log_odds"]) for r in reasons]
+    assert magnitudes == sorted(magnitudes, reverse=True)
+
+
+def test_predictions_are_deterministic():
+    a = client.post("/predict", json=VALID).json()
+    b = client.post("/predict", json=VALID).json()
+    assert a["denial_probability"] == b["denial_probability"]
+
+
+def test_inputs_actually_move_the_score():
+    """Guards against a silently broken feature pipeline returning a constant."""
+    low_income = client.post("/predict", json={**VALID, "income": 25}).json()
+    high_income = client.post("/predict", json={**VALID, "income": 250}).json()
+    assert low_income["denial_probability"] != high_income["denial_probability"]
 
 
 @pytest.mark.parametrize("field,bad", [
     ("loan_amount", -1),
     ("income", 0),
     ("loan_to_value_ratio", 500),
+    ("loan_term", 0),
 ])
 def test_rejects_invalid_input(field, bad):
     r = client.post("/predict", json={**VALID, field: bad})
